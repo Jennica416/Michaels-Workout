@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Michael's Workout</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --green:#1D9E75;--green-light:#E1F5EE;--green-dark:#085041;--green-mid:#0F6E56;
+    --blue:#378ADD;--blue-light:#E6F1FB;--blue-dark:#0C447C;
+    --amber:#BA7517;--amber-light:#FAEEDA;--amber-dark:#412402;
+    --purple:#7F77DD;--purple-light:#EEEDFE;--purple-dark:#26215C;
+    --coral:#D85A30;--coral-light:#FAECE7;--coral-dark:#4A1B0C;
+    --gray:#888780;--gray-light:#F1EFE8;--gray-mid:#B4B2A9;--gray-dark:#2C2C2A;
+    --red:#E24B4A;--red-light:#FCEBEB;
+    --text:#1a1a18;--text-muted:#5F5E5A;--text-hint:#888780;
+    --bg:#fafaf8;--surface:#ffffff;--border:rgba(0,0,0,0.10);--border-mid:rgba(0,0,0,0.18);
+    --radius:12px;--radius-sm:8px;
+    --shadow:0 2px 12px rgba(0,0,0,0.07);--shadow-md:0 4px 24px rgba(0,0,0,0.10);
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --text:#f0f0ec;--text-muted:#B4B2A9;--text-hint:#888780;
+      --bg:#181816;--surface:#222220;--border:rgba(255,255,255,0.10);--border-mid:rgba(255,255,255,0.18);
+      --gray-light:#2C2C2A;--green-light:#04342C;--blue-light:#042C53;--purple-light:#26215C;--amber-light:#412402;--coral-light:#4A1B0C;
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  /* AUTH */
+  #auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem;background:var(--bg);}
+  .auth-card{background:var(--surface);border-radius:20px;padding:2.5rem 2rem;max-width:420px;width:100%;text-align:center;box-shadow:var(--shadow-md);border:1px solid var(--border);}
+  .auth-logo{font-size:3rem;margin-bottom:0.5rem;}
+  .auth-title{font-family:'DM Serif Display',serif;font-size:2rem;font-weight:400;margin-bottom:0.25rem;color:var(--text);}
+  .auth-name{color:var(--green);}
+  .auth-sub{font-size:14px;color:var(--text-muted);margin-bottom:2rem;line-height:1.6;}
+  .auth-phases{display:flex;gap:0.5rem;justify-content:center;margin-bottom:2rem;}
+  .auth-phase{background:var(--gray-light);border-radius:8px;padding:0.5rem 0.75rem;font-size:12px;font-weight:600;color:var(--text-muted);}
+  .auth-phase.p1{background:var(--green-light);color:var(--green-mid);}
+  .auth-phase.p2{background:var(--blue-light);color:var(--blue-dark);}
+  .sign-in-btn{display:flex;align-items:center;justify-content:center;gap:0.75rem;width:100%;padding:0.875rem;background:var(--green);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.2s;}
+  .sign-in-btn:hover{background:var(--green-mid);}
+
+  /* LOADING */
+  #loading-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:999;align-items:center;justify-content:center;}
+  .loading-card{background:var(--surface);border-radius:var(--radius);padding:2rem;text-align:center;min-width:260px;box-shadow:var(--shadow-md);}
+  .spinner{width:40px;height:40px;border:3px solid var(--border-mid);border-top-color:var(--green);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #loading-msg{font-size:14px;color:var(--text-muted);}
+
+  /* SYNC BAR */
+  #sync-bar{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--green);color:#fff;text-align:center;font-size:13px;font-weight:500;padding:6px;transform:translateY(-100%);transition:transform 0.3s;}
+  #sync-bar.visible{transform:translateY(0);}
+  #sync-bar.error{background:var(--red);}
+  #sync-bar.saving{background:var(--amber);}
+
+  /* APP */
+  #app{display:none;min-height:100vh;}
+  .app-header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;padding:0.75rem 1.25rem;}
+  .header-inner{max-width:960px;margin:0 auto;display:flex;align-items:center;gap:1rem;}
+  .header-logo{font-family:'DM Serif Display',serif;font-size:1.35rem;font-weight:400;flex:1;color:var(--text);}
+  .header-logo span{color:var(--green);}
+  .header-greeting{font-size:12px;color:var(--text-hint);margin-left:4px;}
+  .header-stats{display:flex;gap:0.75rem;align-items:center;}
+  .stat-pill{background:var(--gray-light);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:500;color:var(--text-muted);}
+  .stat-pill strong{color:var(--green);font-weight:600;}
+  .user-avatar{width:32px;height:32px;border-radius:50%;background:var(--green);color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+  .progress-bar-wrap{height:3px;background:var(--border);margin-top:0.5rem;max-width:960px;margin-left:auto;margin-right:auto;}
+  .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--blue));transition:width 0.6s;}
+
+  /* LAYOUT */
+  .main-layout{max-width:960px;margin:0 auto;padding:1.25rem;display:grid;grid-template-columns:200px 1fr;gap:1.25rem;}
+  @media(max-width:660px){.main-layout{grid-template-columns:1fr;}}
+
+  /* SIDEBAR */
+  .phase-tabs{display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;}
+  .phase-btn{padding:0.65rem 1rem;border:1.5px solid var(--border-mid);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--text-muted);text-align:left;transition:all 0.2s;line-height:1.3;}
+  .phase-btn small{display:block;font-size:10px;font-weight:400;margin-top:1px;opacity:0.8;}
+  .phase-btn.active.p1{border-color:var(--green);color:var(--green-mid);background:var(--green-light);font-weight:600;}
+  .phase-btn.active.p2{border-color:var(--blue);color:var(--blue-dark);background:var(--blue-light);font-weight:600;}
+  .sidebar-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-hint);margin-bottom:0.5rem;padding:0 0.25rem;}
+  #week-list{display:flex;flex-direction:column;gap:0.3rem;}
+  .week-btn{padding:0.5rem 0.75rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:400;color:var(--text-muted);text-align:left;transition:all 0.15s;display:flex;align-items:center;justify-content:space-between;}
+  .week-btn:hover{border-color:var(--green);color:var(--text);}
+  .week-btn.active{border-color:var(--green);background:var(--green-light);color:var(--green-mid);font-weight:600;}
+  .week-done-badge{font-size:10px;background:var(--green);color:#fff;border-radius:10px;padding:1px 7px;}
+  .week-partial-badge{font-size:10px;background:var(--amber-light);color:var(--amber);border-radius:10px;padding:1px 7px;}
+
+  /* CONTENT */
+  .content{min-width:0;}
+  .week-header{border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1rem;border:1px solid var(--border);}
+  .week-header.p1{background:linear-gradient(135deg,var(--green-light),var(--surface));border-color:#9FE1CB;}
+  .week-header.p2{background:linear-gradient(135deg,var(--blue-light),var(--surface));border-color:#B5D4F4;}
+  .phase-badge{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--green-mid);margin-bottom:0.2rem;}
+  .week-header.p2 .phase-badge{color:var(--blue-dark);}
+  .week-header h2{font-family:'DM Serif Display',serif;font-size:1.5rem;font-weight:400;margin-bottom:0.75rem;color:var(--text);}
+  .week-progress{display:flex;align-items:center;gap:0.75rem;}
+  .week-progress-dots{display:flex;gap:6px;}
+  .dot{width:11px;height:11px;border-radius:50%;background:var(--border-mid);}
+  .dot.done{background:var(--green);}
+  .week-progress-text{font-size:12px;color:var(--text-muted);}
+
+  /* DAY CARDS */
+  .day-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:0.75rem;overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s;}
+  .day-card.completed{border-color:#5DCAA5;background:#fafffe;}
+  @media(prefers-color-scheme:dark){.day-card.completed{background:#04342C;border-color:#0F6E56;}}
+  .day-header{display:flex;align-items:center;gap:0.75rem;padding:1rem 1.25rem;cursor:pointer;user-select:none;}
+  .day-icon{font-size:1.4rem;flex-shrink:0;}
+  .day-info{flex:1;min-width:0;}
+  .day-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+  .day-subtitle{margin-top:3px;}
+  .day-type-pill{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;border-radius:20px;padding:2px 9px;}
+  .pill-strength{background:var(--blue-light);color:var(--blue-dark);}
+  .pill-yoga{background:var(--purple-light);color:var(--purple-dark);}
+  .pill-mobility{background:var(--green-light);color:var(--green-mid);}
+  .day-check{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border-mid);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;flex-shrink:0;transition:all 0.2s;color:transparent;}
+  .day-check:hover{border-color:var(--green);}
+  .day-check.checked{background:var(--green);border-color:var(--green);color:#fff;}
+  .day-body{display:none;border-top:1px solid var(--border);}
+  .day-body.open{display:block;}
+  .day-tip{padding:0.75rem 1.25rem;background:var(--gray-light);font-size:13px;color:var(--text-muted);border-bottom:1px solid var(--border);line-height:1.5;}
+  .section-title{padding:0.55rem 1.25rem;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-hint);background:var(--gray-light);border-bottom:1px solid var(--border);}
+
+  /* EXERCISE CARDS */
+  .exercise-card{border-bottom:1px solid var(--border);}
+  .exercise-card:last-child{border-bottom:none;}
+  .ex-header{display:flex;align-items:center;gap:0.6rem;padding:0.7rem 1.25rem;cursor:pointer;transition:background 0.15s;}
+  .ex-header:hover{background:var(--gray-light);}
+  .ex-check{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border-mid);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;cursor:pointer;transition:all 0.2s;color:transparent;}
+  .ex-check:hover{border-color:var(--green);}
+  .ex-check.checked{background:var(--green);border-color:var(--green);color:#fff;}
+  .ex-check.pop{animation:pop 0.3s ease;}
+  @keyframes pop{0%{transform:scale(1);}50%{transform:scale(1.4);}100%{transform:scale(1);}}
+  .ex-name{flex:1;font-size:13px;font-weight:500;color:var(--text);}
+  .ex-detail{font-size:11px;color:var(--text-hint);font-family:'DM Mono',monospace;flex-shrink:0;}
+  .ex-caution{font-size:10px;color:var(--amber);background:var(--amber-light);border-radius:4px;padding:1px 6px;flex-shrink:0;margin-left:4px;}
+  .ex-expand{font-size:10px;color:var(--text-hint);margin-left:4px;flex-shrink:0;}
+  .ex-body{display:none;border-top:1px solid var(--border);background:var(--gray-light);}
+  .ex-body.open{display:block;}
+  .ex-body-inner{display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem 1.25rem;}
+  @media(max-width:520px){.ex-body-inner{grid-template-columns:1fr;}}
+  .ex-image-area{background:var(--surface);border-radius:var(--radius-sm);padding:1rem;text-align:center;border:1px solid var(--border);}
+  .ex-image-label{font-size:12px;font-weight:500;margin-top:0.5rem;color:var(--text-muted);}
+  .ex-desc h4,.form-tips h4{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-hint);margin-bottom:0.4rem;}
+  .ex-desc p{font-size:13px;line-height:1.55;color:var(--text-muted);}
+  .form-tips ul{list-style:none;display:flex;flex-direction:column;gap:0.4rem;}
+  .form-tips li{font-size:12px;color:var(--text-muted);line-height:1.45;padding-left:1rem;position:relative;}
+  .form-tips li::before{content:'→';position:absolute;left:0;color:var(--green);}
+  .ankle-note{font-size:11px;color:var(--amber-dark);background:var(--amber-light);border-radius:6px;padding:6px 10px;margin-top:8px;line-height:1.4;}
+  @media(prefers-color-scheme:dark){.ankle-note{color:var(--amber-light);background:rgba(186,117,23,0.2);}}
+
+  /* WEIGHT+REPS INPUTS */
+  .tracking-inputs{display:flex;align-items:center;gap:3px;margin-left:6px;flex-shrink:0;}
+  .tracking-inputs input{width:42px;height:26px;border-radius:6px;border:1px solid var(--border-mid);background:var(--gray-light);font-size:12px;text-align:center;padding:0 3px;font-family:'DM Mono',monospace;color:var(--text);}
+  .tracking-inputs input:focus{outline:none;border-color:var(--green);}
+  .tracking-inputs .sep{font-size:10px;color:var(--text-hint);}
+  .tracking-inputs input.filled{border-color:var(--green);background:var(--green-light);}
+  .hist-line{padding:5px 1.25rem 0;font-size:11px;color:var(--text-hint);}
+  .hist-line span{color:var(--green);font-weight:500;}
+
+  /* COMPLETE BTN */
+  .complete-day-btn{width:100%;padding:0.875rem;background:var(--green);color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.2s;letter-spacing:0.01em;}
+  .complete-day-btn:hover{background:var(--green-mid);}
+  .complete-day-btn.done{background:var(--green-dark);}
+
+  /* TRACKER TABLES */
+  .tracker-section{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;margin-top:1rem;}
+  .tracker-header{padding:0.875rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .tracker-header-title{font-weight:600;font-size:14px;color:var(--text);}
+  .tracker-header-sub{font-size:12px;color:var(--text-hint);}
+  .tracker-grid{width:100%;border-collapse:collapse;}
+  .tracker-grid th{font-size:10px;font-weight:600;color:var(--text-hint);text-align:center;padding:6px 4px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:0.06em;}
+  .tracker-grid th.label-col{text-align:left;padding-left:1.25rem;}
+  .tracker-grid td{text-align:center;padding:5px 3px;border-bottom:1px solid var(--border);}
+  .tracker-grid td.label-col{text-align:left;padding-left:1.25rem;font-size:12px;white-space:nowrap;color:var(--text-muted);}
+  .tracker-grid tr:last-child td{border-bottom:none;}
+  .tracker-dot{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border-mid);background:var(--gray-light);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:#fff;transition:all 0.15s;}
+  .tracker-dot.done{background:var(--green);border-color:var(--green);}
+  .tracker-dot.ls{border-color:var(--purple);}
+  .tracker-dot.ls.done{background:var(--purple);border-color:var(--purple);}
+  .tracker-count{font-size:12px;color:var(--text-hint);font-weight:600;}
+  .tracker-footer{padding:8px 1.25rem;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-hint);}
+  .tracker-footer strong{color:var(--green);}
+  .tracker-footer .ls-strong{color:var(--purple);}
+
+  /* STEPS INPUT */
+  .steps-input{width:70px;height:22px;border-radius:5px;border:1px solid var(--border-mid);background:var(--gray-light);font-size:11px;text-align:center;font-family:'DM Mono',monospace;color:var(--text);}
+  .steps-input:focus{outline:none;border-color:var(--green);}
+  .steps-input.has-value{border-color:var(--green);background:var(--green-light);color:var(--green-mid);}
+
+  /* BIKE INPUT */
+  .bike-input{width:44px;height:22px;border-radius:5px;border:1px solid var(--border-mid);background:var(--gray-light);font-size:11px;text-align:center;font-family:'DM Mono',monospace;color:var(--text);}
+  .bike-input:focus{outline:none;border-color:var(--green);}
+  .bike-input.has-value{border-color:var(--green);background:var(--green-light);color:var(--green-mid);}
+</style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">🏃</div>
+    <div class="auth-title"><span class="auth-name">Michael's</span> Workout</div>
+    <div class="auth-sub">Your personal 8-week circuit training program — fat loss, strength, mobility &amp; yoga. Built around your schedule and your body.</div>
+    <div class="auth-phases">
+      <div class="auth-phase p1">Phase 1 · Foundation</div>
+      <div class="auth-phase p2">Phase 2 · Build</div>
+    </div>
+    <button class="sign-in-btn" onclick="handleSignIn()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#fff" d="M9 3.48c1.69 0 2.83.73 3.48 1.34l2.54-2.48C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.96l2.91 2.26C4.6 5.05 6.62 3.48 9 3.48z"/><path fill="#fff" d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#fff" d="M3.88 10.78A5.54 5.54 0 0 1 3.58 9c0-.62.11-1.22.29-1.78L.96 4.96A9 9 0 0 0 0 9c0 1.45.35 2.82.96 4.04l2.92-2.26z"/><path fill="#fff" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.53-1.78.9-3.12.9-2.38 0-4.4-1.57-5.12-3.74L.87 13.04C2.35 15.98 5.48 18 9 18z"/></svg>
+      Sign in with Google
+    </button>
+  </div>
+</div>
+
+<div id="loading-overlay">
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <div id="loading-msg">Loading your progress...</div>
+  </div>
+</div>
+
+<div id="sync-bar"></div>
+
+<div id="app">
+  <div class="app-header">
+    <div class="header-inner">
+      <div class="header-logo">Michael's <span>Workout</span></div>
+      <div class="header-stats">
+        <div class="stat-pill">Days: <strong id="stat-days">0</strong>/32</div>
+        <div class="stat-pill">Progress: <strong id="stat-pct">0%</strong></div>
+        <div class="user-avatar" id="user-initials" onclick="handleSignOut()" title="Sign out">M</div>
+      </div>
+    </div>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="main-layout">
+    <div class="sidebar">
+      <div class="phase-tabs">
+        <button class="phase-btn p1 active" onclick="selectPhase(1)">Phase 1<small>Foundation · Wk 1–4</small></button>
+        <button class="phase-btn p2" onclick="selectPhase(2)">Phase 2<small>Build · Wk 5–8</small></button>
+      </div>
+      <div class="sidebar-title">Week</div>
+      <div id="week-list"></div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<script>
+const API_KEY = 'YOUR_API_KEY';
+const CLIENT_ID = 'YOUR_CLIENT_ID';
+const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile';
+const FILE_NAME = 'michaels-workout-data.json';
+let gapiInited=false,gisInited=false,tokenClient,driveFileId,saveTimer;
+let state={};
+
+// ── GOOGLE AUTH ───────────────────────────────────────────────
+window.gapiLoaded=function(){gapi.load('client',async()=>{await gapi.client.init({apiKey:API_KEY,discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']});gapiInited=true;maybeEnableApp();});};
+window.gisLoaded=function(){tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPES,callback:async(resp)=>{if(resp.error){showSync('Sign-in failed: '+resp.error,'error');return;}await afterSignIn();}});gisInited=true;maybeEnableApp();};
+function maybeEnableApp(){if(gapiInited&&gisInited){const tok=sessionStorage.getItem('gapi_token');if(tok){gapi.client.setToken(JSON.parse(tok));afterSignIn();}}}
+function handleSignIn(){if(!gapiInited||!gisInited){alert('Google APIs still loading. Please wait.');return;}if(gapi.client.getToken()===null)tokenClient.requestAccessToken({prompt:'consent'});else tokenClient.requestAccessToken({prompt:''});}
+function handleSignOut(){const token=gapi.client.getToken();if(token){google.accounts.oauth2.revoke(token.access_token);gapi.client.setToken('');}sessionStorage.removeItem('gapi_token');document.getElementById('app').style.display='none';document.getElementById('auth-screen').style.display='flex';}
+async function afterSignIn(){
+  sessionStorage.setItem('gapi_token',JSON.stringify(gapi.client.getToken()));
+  document.getElementById('auth-screen').style.display='none';
+  showLoading('Loading your progress from Google Drive...');
+  try{
+    const ui=await gapi.client.request({path:'https://www.googleapis.com/oauth2/v3/userinfo'});
+    const name=ui.result.name||'Michael';
+    const initials=name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('user-initials').textContent=initials;
+  }catch(e){document.getElementById('user-initials').textContent='M';}
+  await loadFromDrive();
+  hideLoading();
+  document.getElementById('app').style.display='block';
+  renderAll();
+}
+
+// ── DRIVE ─────────────────────────────────────────────────────
+async function findOrCreateFile(){const res=await gapi.client.drive.files.list({q:`name='${FILE_NAME}' and trashed=false`,spaces:'drive',fields:'files(id,name)'});if(res.result.files&&res.result.files.length>0)return res.result.files[0].id;const boundary='-------314159265358979323846';const meta=JSON.stringify({name:FILE_NAME,mimeType:'application/json'});const body=`--${boundary}\r\nContent-Type: application/json\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n{}\r\n--${boundary}--`;const r=await gapi.client.request({path:'/upload/drive/v3/files',method:'POST',params:{uploadType:'multipart'},headers:{'Content-Type':`multipart/related; boundary="${boundary}"`},body});return r.result.id;}
+async function loadFromDrive(){try{driveFileId=await findOrCreateFile();const res=await gapi.client.drive.files.get({fileId:driveFileId,alt:'media'});state=(typeof res.result==='object'&&res.result!==null)?res.result:{};}catch(e){state={};showSync('Could not load from Drive. Working offline.','error');}}
+async function saveToDrive(){if(!driveFileId)return;showSync('Saving...','saving');try{await gapi.client.request({path:`/upload/drive/v3/files/${driveFileId}`,method:'PATCH',params:{uploadType:'media'},headers:{'Content-Type':'application/json'},body:JSON.stringify(state)});showSync('✓ Saved to Google Drive','');setTimeout(()=>hideSyncBar(),2500);}catch(e){showSync('Save failed — check your connection','error');}}
+function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveToDrive,1200);}
+
+// ── UI HELPERS ────────────────────────────────────────────────
+function showSync(msg,type){const b=document.getElementById('sync-bar');b.textContent=msg;b.className='visible '+(type||'');}
+function hideSyncBar(){document.getElementById('sync-bar').className='';}
+function showLoading(msg){document.getElementById('loading-msg').textContent=msg;document.getElementById('loading-overlay').style.display='flex';}
+function hideLoading(){document.getElementById('loading-overlay').style.display='none';}
+
+// ── EXERCISE LIBRARY ──────────────────────────────────────────
+const EXERCISES = {
+  'seated-march':{icon:'🚶',name:'Seated Marching',ankleNote:false,desc:'Sit tall in a chair. Alternately lift knees in a marching motion, driving the opposite arm with each lift. Gets circulation going without any ankle load.',tips:['Sit on the edge of the chair for better range','Keep your torso upright and tall','Breathe rhythmically throughout','Lift knees as high as comfortable']},
+  'ankle-circles':{icon:'🔵',name:'Ankle Circles',ankleNote:true,desc:'Seated or standing with support. Lift one foot and draw slow circles with your ankle clockwise then counter-clockwise. Switch feet. Gently mobilises the joint before loading it.',tips:['Go through the full range of motion gently','Both directions equally — 10 each','No pain — reduce range if uncomfortable','This primes your ankle for everything that follows']},
+  'ankle-alphabet':{icon:'🔤',name:'Ankle Alphabet',ankleNote:true,desc:'Seated. Lift one foot and trace the letters A–Z in the air with your toes. Works the ankle through all planes of motion — especially good for soreness and stiffness.',tips:['Move only the ankle, not your whole leg','Go slowly and deliberately','Both feet equally','Gentle mobility work — not a strength exercise']},
+  'arm-circles':{icon:'🔄',name:'Arm Circles',ankleNote:false,desc:'Stand tall with arms extended to sides at shoulder height. Make slow controlled circles — start small, gradually increase. Reverse direction after each set.',tips:['Keep shoulders down away from ears','Engage core to avoid swaying','Move only at the shoulder joint','Start small before going large']},
+  'shoulder-rolls':{icon:'🔁',name:'Shoulder Rolls',ankleNote:false,desc:'Stand or sit tall. Roll shoulders forward, up toward ears, back, and down in one fluid circle. Releases tension and activates the rotator cuff.',tips:['Roll slowly and breathe throughout','Feel the full range of motion','Squeeze shoulder blades on the back portion','Keep neck relaxed']},
+  'cat-cow':{icon:'🐄',name:'Cat-Cow Stretch',ankleNote:false,desc:'On hands and knees. Inhale and arch your back (cow), lifting head and tailbone. Exhale and round your spine (cat), tucking chin and tailbone. Alternate slowly.',tips:['Move with your breath — no rushing','Keep arms straight throughout','Full range in both directions','10 slow reps to warm up the spine']},
+  'thread-needle':{icon:'🧵',name:'Thread-the-Needle',ankleNote:false,desc:'On hands and knees, slide one arm under your body along the floor, rotating your thoracic spine until your shoulder touches the mat. Return and switch sides.',tips:['Movement from mid-back, not lower back','Keep hips stacked and stable','Breathe into the rotation','Great for posture and upper back mobility']},
+  'childs-pose':{icon:'🧘',name:"Child's Pose",ankleNote:false,desc:"From kneeling, sit hips back toward heels and stretch arms forward on the mat. Let your forehead rest down. A gentle full-body stretch and reset.",tips:['Widen knees if needed for comfort','Let your back release with each exhale','Arms can be by sides for a more passive version','Hold 30–60 seconds']},
+  'hip-circles':{icon:'⭕',name:'Hip Circles',ankleNote:false,desc:'Feet hip-width apart, hands on hips. Make large slow circles with your hips — forward, side, back, side. Mobilises the hip joint.',tips:['Go slowly and feel the full range','Keep feet flat on the floor','Don\'t hold your breath','Make circles as large as comfortable']},
+  'leg-swings':{icon:'🦵',name:'Leg Swings',ankleNote:false,desc:'Stand on one leg, hold a wall for balance. Swing the other leg forward and back in a controlled pendulum motion. Then side to side. Switch legs.',tips:['Start with small swings, gradually increase range','Keep standing leg slightly bent','Keep torso upright','Don\'t force the range — let momentum do the work']},
+  'band-pull-aparts':{icon:'↔️',name:'Band Pull-Aparts',ankleNote:false,desc:'Hold resistance band at chest height, hands shoulder-width, palms down. Pull apart until it touches your chest, squeezing shoulder blades. Slowly return.',tips:['Keep arms straight throughout','Squeeze shoulder blades at full extension','Control the return — don\'t let band snap back','Elbows should NOT bend']},
+  'bw-squats':{icon:'🦿',name:'Bodyweight Squats',ankleNote:true,desc:'Feet shoulder-width apart, toes slightly out. Sit back and down as if into a chair, keeping chest up. Drive through heels to stand. Only go as low as your knee and ankle are comfortable.',tips:['Knees track over toes — don\'t let them cave','Keep chest up and back flat','Push through your heels','Go only as low as you can without discomfort in the right knee/ankle']},
+  'db-chest-press':{icon:'🏋️',name:'DB Floor Chest Press',ankleNote:false,desc:'Lie on your back on the mat, knees bent, feet flat. Hold dumbbells at chest level, elbows at 45°. Press up until arms are nearly straight, lower slowly.',tips:['Keep lower back pressed into the mat','Elbows at 45° — not flared to 90°','Lower until elbows touch floor, pause briefly','Exhale on the press, inhale on the way down']},
+  'band-rows':{icon:'🪢',name:'Band Rows',ankleNote:false,desc:'Anchor band at chest height or step on it. Hold ends with arms extended. Pull elbows back past your torso, squeezing shoulder blades. Extend slowly to return.',tips:['Keep chest tall and proud','Drive your elbows — not your hands — back','Squeeze shoulder blades at peak contraction','Core engaged throughout']},
+  'glute-bridge':{icon:'🌉',name:'Glute Bridge',ankleNote:false,desc:'Lie on your back, knees bent, feet flat hip-width apart. Drive through heels and squeeze glutes to lift hips until body forms a straight line from knees to shoulders.',tips:['Squeeze glutes hard at the top','Push through HEELS, not balls of feet','Knees, hips, and shoulders align at the top','Don\'t hyperextend — stop at a straight line']},
+  'dead-bug':{icon:'🐛',name:'Dead Bug',ankleNote:false,desc:'Lie on back, arms up, knees bent at 90° over hips. Slowly lower one arm overhead and the opposite leg toward the floor simultaneously. Return and alternate. Lower back stays pressed to the mat.',tips:['Lower back MUST stay pressed to the mat','Move slowly and with control','Breathe out as you lower the limbs','Excellent core work — no spinal loading']},
+  'band-bicep-curls':{icon:'💪',name:'Band Bicep Curls',ankleNote:false,desc:'Stand on band with feet hip-width. Hold one end in each hand, palms up. Curl hands toward shoulders, keeping elbows pinned to your sides.',tips:['Elbows stay pinned to your sides','Don\'t swing your back','Control the lowering — 2–3 seconds down','Keep wrists straight']},
+  'calf-raises':{icon:'👟',name:'Calf Raises',ankleNote:true,desc:'Seated version recommended: feet flat, rise slowly onto balls of feet and lower. Standing: hold wall for balance, rise as high as possible, lower slowly. Use the seated version if ankle is sore.',tips:['Go all the way up and all the way down','The slow lowering is where most benefit is','Seated version is much gentler on the ankle','Stop immediately if ankle pain occurs']},
+  'chest-opener':{icon:'🌟',name:'Chest Opener Stretch',ankleNote:false,desc:'Lie on your back with arms extended in a T. Let gravity open your chest. Or clasp hands behind your back standing and lift arms slightly.',tips:['Let gravity do the work — don\'t force it','Breathe slowly and deeply into your chest','Hold 45–60 seconds','Relax your jaw and face completely']},
+  'figure-four':{icon:'4️⃣',name:'Figure-Four Hip Stretch',ankleNote:false,desc:'Lie on your back, knees bent. Cross one ankle over the opposite knee, creating a figure-4. Thread hands behind the bottom thigh and gently pull toward your chest.',tips:['Flex the foot of the crossed leg to protect the knee','Pull legs toward you slowly','Breathe deeply and feel the stretch in the outer hip','Keep head and shoulders relaxed on the floor']},
+  'breathwork':{icon:'🌬️',name:'Breathwork & Cool-Down',ankleNote:false,desc:'Lie on your mat. Breathe in through nose for 4 counts, hold for 4, exhale through mouth for 6. Activates your parasympathetic nervous system, speeding recovery.',tips:['The extended exhale triggers relaxation — don\'t rush it','Let your body feel heavy and relaxed on the exhale','Close your eyes and notice any remaining tension','Even 2–3 minutes measurably lowers cortisol']},
+  'bird-dog':{icon:'🦅',name:'Bird Dog',ankleNote:false,desc:'On hands and knees. Extend opposite arm and leg simultaneously, hold 2 seconds, return. Alternate sides. Builds core stability without spinal compression.',tips:['Keep hips level — don\'t rotate','Reach long, not high','Control the return','Core engaged the entire time']},
+  'single-arm-row':{icon:'🚣',name:'Single-Arm DB Row',ankleNote:false,desc:'Place one knee and hand on a surface for support. Hold dumbbell in opposite hand, arm hanging. Pull elbow up toward hip, lower with control.',tips:['Keep back flat and parallel to the ground','Drive the elbow — not the hand — upward','Don\'t rotate your torso','Feel the squeeze in your back at the top']},
+  'db-overhead-press':{icon:'⬆️',name:'DB Overhead Press',ankleNote:false,desc:'Stand or sit. Hold dumbbells at shoulder height, palms forward, elbows at 90°. Press directly overhead until arms are straight. Lower with control.',tips:['Keep ribs down — don\'t arch lower back','Press in a straight line','Engage your core throughout','Don\'t lock elbows aggressively at the top']},
+  'clamshells':{icon:'🦪',name:'Band Clamshells',ankleNote:false,desc:'Lie on your side with band above knees, knees bent at 90°, hips stacked. Keep feet together and rotate the top knee up like a clamshell. Lower with control.',tips:['DON\'T let your hips roll back','Movement is small — quality beats range','Squeeze your glute at the top','Core engaged throughout']},
+  'wall-sit':{icon:'🧱',name:'Wall Sit',ankleNote:true,desc:'Stand with back against a wall. Slide down until thighs approach parallel (or as low as your right knee is comfortable). Hold the position with feet flat and shins vertical.',tips:['Knees stay over ankles — don\'t let them drift forward','Keep back flat against the wall','Breathe steadily — don\'t hold your breath','Go higher if you feel sharp knee discomfort']},
+  'tricep-kickback':{icon:'🤙',name:'Tricep Kickback',ankleNote:false,desc:'Hinge forward at hips ~45°, one hand on thigh for support. Hold dumbbell with elbow bent at 90°. Extend arm straight behind you, then return.',tips:['Keep upper arm parallel to the floor','Don\'t swing — isolate the tricep','Exhale as you extend back','Keep your back flat']},
+  'hamstring-stretch':{icon:'🦵',name:'Seated Hamstring Stretch',ankleNote:false,desc:'Sit on floor with legs extended. Keeping back flat, hinge forward from the hips reaching toward your feet. Hold the furthest comfortable point.',tips:['Goal is a flat back, not touching your toes','Think "chest toward thighs" not "head toward knees"','Bend knees slightly if back rounds','Hold still — don\'t bounce']},
+  'hip-flexor-stretch':{icon:'🧎',name:'Kneeling Hip Flexor Stretch',ankleNote:false,desc:'Kneel with one knee on the mat, other foot forward. Shift weight forward until you feel a deep stretch in the front of the back hip. Hold, switch sides.',tips:['Squeeze the glute of the back leg to intensify','Keep torso upright','One of the most important stretches for anyone who sits a lot','Breathe deeply into the stretch']},
+  'step-ups':{icon:'🪜',name:'Step-Ups (Low Step)',ankleNote:true,desc:'Use a low step or stair (6–8 inches max). Step up with one foot, bring the other up, then step back down. Alternate leading foot. Keep the movement slow and controlled.',tips:['Use the lowest step available to stay comfortable','Control the descent — don\'t drop down','Squeeze the glute of the stepping leg at the top','Skip this if the ankle feels unstable — substitute calf raises']},
+  'band-bridge':{icon:'🎀',name:'Glute Bridge with Band',ankleNote:false,desc:'Lie on back, band just above knees, knees bent, feet flat. Drive hips up squeezing glutes AND pressing knees slightly outward against the band. Hold at top, lower with control.',tips:['Band adds glute-med activation — keep knees from caving','Squeeze hard at the top for the 2-second hold','Don\'t let your lower back take over','Push through heels not toes']},
+  'pushups':{icon:'💪',name:'Push-Ups (Modified OK)',ankleNote:false,desc:'Hands shoulder-width apart, body in a straight line from head to heels (or knees for modified). Lower chest toward floor, elbows at 45°. Push back up.',tips:['Body in a straight line — no hips dropping','Elbows at 45° from body — not flared out wide','Lower until chest nearly touches floor','Modified knee push-ups are genuinely effective']},
+  'hammer-curls':{icon:'🔨',name:'Hammer Curls',ankleNote:false,desc:'Stand holding dumbbells at sides with palms facing each other. Curl both arms up together or alternating, maintaining the neutral wrist position throughout.',tips:['Neutral grip (thumbs up) — don\'t rotate wrists','Elbows stay pinned to your sides','2 seconds up, 3 seconds down','Can be done seated to eliminate momentum']},
+  'tricep-overhead':{icon:'🔝',name:'Tricep Overhead Extension',ankleNote:false,desc:'Stand or sit. Hold one dumbbell with both hands overhead, arms extended. Bend elbows to lower the weight behind your head. Press back up through triceps.',tips:['Keep upper arms vertical and still — only forearms move','Don\'t let elbows flare outward','Core engaged to protect lower back','Go heavier when 12 reps feels easy']},
+  'band-face-pulls':{icon:'🎯',name:'Band Face Pulls',ankleNote:false,desc:'Anchor band at face height. Hold ends with thumbs pointing back. Pull toward your face, leading with elbows up and out, finishing with hands beside your ears.',tips:['Elbows stay HIGH — at or above shoulder level','Pull to your FACE, not your chin','Keep core tight','Essential for shoulder health']},
+  'rdl':{icon:'📉',name:'DB Romanian Deadlift',ankleNote:false,desc:'Stand holding dumbbells in front of thighs. With soft knee bend, hinge at hips — pushing them back — and lower weights along your legs until you feel a hamstring stretch. Drive hips forward to stand.',tips:['THIS IS A HIP HINGE, not a squat','Keep dumbbells in contact with your legs','Feel the stretch in hamstrings, not lower back','Neutral spine always — no rounding']},
+  'goblet-squat':{icon:'🏺',name:'Goblet Squat',ankleNote:true,desc:'Hold a dumbbell vertically at chest height. Feet shoulder-width apart. Squat down with the weight between your legs. Only go as low as your right knee and ankle allow comfortably.',tips:['Dumbbell stays close to your chest','Sit between your heels, not behind them','Elbows can touch inner thighs at the bottom','Stop if you feel sharp knee pain — go less deep']},
+  'glute-march':{icon:'🦵',name:'Glute Bridge March',ankleNote:false,desc:'Get into a glute bridge, hips raised. Slowly lift one foot off the floor, hold 2 seconds, lower it, then lift the other. Hips stay level throughout.',tips:['Keep hips LEVEL — don\'t let the off-leg side drop','Squeeze the glute of the standing leg hard','Go slowly','Builds single-leg stability without ankle load']},
+  'plank':{icon:'📏',name:'Plank Hold',ankleNote:false,desc:'Forearms on the mat, elbows under shoulders. Body in a straight line from head to heels. Engage core by drawing navel toward spine. Hold still and breathe.',tips:['Don\'t hold your breath — breathe steadily','Hips in line — not sagging or piking up','Squeeze glutes lightly to help align hips','Perfect 20-second plank beats 60 seconds of sagging']},
+  'upper-body-stretch':{icon:'🙆',name:'Upper Body Stretch Sequence',ankleNote:false,desc:'Cross-body shoulder stretch, tricep overhead stretch, chest opener, neck tilts side to side, and doorway pec stretch. Hold each 30–45 seconds.',tips:['Hold each 30–45 seconds','Don\'t stretch to pain — mild discomfort is fine','These reduce next-day soreness','Match the stretch to what you just trained']},
+  'lower-body-stretch':{icon:'🧘',name:'Lower Body Stretch Sequence',ankleNote:true,desc:'Standing quad stretch, seated hamstring stretch, figure-four hip stretch, kneeling hip flexor, gentle ankle circles. Hold each 30–45 seconds. Take extra time with the right ankle and knee.',tips:['Hold each at least 30 seconds','Static stretching is most beneficial after exercise','Pay extra attention to right ankle and knee today','Never stretch into sharp pain']},
+  'full-stretch':{icon:'🌈',name:'Full Body Stretch Sequence',ankleNote:false,desc:'Hits all major muscle groups: calves, hamstrings, hip flexors, quads, glutes, chest, shoulders, triceps, and neck. Hold each 30–45 seconds.',tips:['Hold each stretch at least 30 seconds','Never bounce a static stretch — hold still','Breathe deeply and let your body relax with each exhale','Static stretching is most beneficial after exercise']},
+  'pigeon-pose':{icon:'🕊️',name:'Pigeon Pose',ankleNote:false,desc:'From hands and knees, bring one shin forward on the mat. Extend the other leg straight behind you. Lower your torso forward over the bent shin.',tips:['Front shin doesn\'t need to be parallel to the mat','Keep hips as square as possible','Use mat for cushioning under front knee','Breathe deeply — one of the best hip stretches']},
+  '90-90-stretch':{icon:'🔲',name:'90/90 Hip Stretch',ankleNote:false,desc:'Sit on floor with both legs bent at 90°, one in front, one to the side. Sit tall and breathe. Slowly rotate to face the front leg side.',tips:['Try to sit on both sit-bones evenly','Keep back tall — don\'t collapse','Stretches both internal and external hip rotators','Sit on a folded blanket if hips don\'t reach the floor']},
+  'seated-leg-press-band':{icon:'🦵',name:'Seated Band Leg Press',ankleNote:true,desc:'Sit in a sturdy chair. Loop band around both feet and hold the ends. Extend one leg forward against the band resistance, then slowly return. Alternate legs. Ankle-friendly quad work.',tips:['Keep the movement controlled','Great low-impact alternative for the right knee','Don\'t lock the knee at full extension','Feel the quad working throughout']},
+  'db-row-bent':{icon:'🚣',name:'Bent-Over DB Row',ankleNote:false,desc:'Stand with feet hip-width, hinge forward 45° keeping back flat. Hold dumbbells hanging toward floor. Pull elbows back and up to your torso, squeezing shoulder blades. Lower with control.',tips:['Back MUST be flat — non-negotiable','Drive ELBOWS back, not hands up','Keep neck in neutral','Squeeze shoulder blades together at top of each rep']},
+  'arnold-press':{icon:'🏆',name:'Arnold Press',ankleNote:false,desc:'Hold dumbbells at shoulder height with palms facing YOU. As you press up, rotate palms to face away, finishing with arms overhead. Reverse on the way down.',tips:['The rotation should be smooth and continuous','Don\'t arch your back as you press overhead','Keep core tight throughout','Start light — the rotation makes it harder']},
+  'reverse-lunges':{icon:'↩️',name:'Reverse Lunges',ankleNote:true,desc:'Stand tall. Step one foot backward and lower your back knee toward (not touching) the floor. Front shin stays vertical. Push through front heel to return. This is gentler on the front ankle than forward lunges.',tips:['Front knee stays directly over front ankle','Keep torso upright — don\'t lean forward','Lower the back knee with control','Both knees near 90° at the bottom — stop if right knee complains']},
+  'yoga-flexibility':{icon:'🧘',name:'30-min Yoga — Flexibility Focus',desc:'Follow along with a YouTube yoga video focused on flexibility. Great channels: Yoga with Adriene, SarahBethYoga. Search "30 min flexibility yoga beginner."',tips:['Never push into pain — discomfort is ok, sharp pain is not','Hold each pose for at least 5 breaths','Props (blocks, blankets) improve the stretch — use them','Focus on breathing into tight areas']},
+  'yoga-mobility':{icon:'🧘',name:'30-min Yoga — Mobility Focus',desc:'Follow a YouTube video targeting mobility — especially shoulders, thoracic spine, and hips. Search "30 min yoga mobility" or "yoga for desk workers."',tips:['Mobility yoga is active range of motion — move through ranges','Consistent practice over weeks produces real change','This directly reduces injury risk in strength sessions','Great for the right hip and ankle too']},
+  'yoga-strength':{icon:'🧘',name:'30-min Yoga — Strength Flow',desc:'A yoga video emphasising strength through poses. Search "30 min yoga for strength" or "power yoga beginner." Expect warrior sequences, balance poses, and plank variations.',tips:['Warrior poses should feel like a workout — embrace the burn','Focus on alignment before depth in each pose','Balance poses build focus and proprioception','By week 5 you\'ll notice real improvement']},
+  'yoga-balance':{icon:'🧘',name:'30-min Yoga — Balance & Core',desc:'Yoga video targeting balance and core stability. Search "yoga balance core 30 minutes." Tree pose, warrior III, and core-intensive sequences.',tips:['Fix your gaze on a still point for balance poses','Core engagement comes from breathing, not hard bracing','One-legged poses are great for your ankle rehab over time','Falls are fine — get back up and try again']},
+  'yoga-yin':{icon:'🧘',name:'30-min Yoga — Yin / Deep Restore',desc:'Yin yoga holds poses for 2–5 minutes to target deep connective tissue. Search "30 min yin yoga" or "restorative yoga deep stretch."',tips:['Poses are held 2–5 minutes — this is intentional and normal','Use props (rolled blanket, pillow) freely','Deep dull stretch sensation is fine — sharp pain is not','Excellent recovery between hard training days']},
+  'yoga-hip':{icon:'🧘',name:'30-min Yoga — Hip & Ankle Focus',desc:'Yoga specifically targeting hips and ankles. Search "yoga for tight hips and ankles" or "yoga for knee pain." Look for Yoga with Adriene\'s hip or knee series.',tips:['Specifically beneficial for your right ankle and knee','Go very gently — these poses target your sore areas','Props and modifications are encouraged','Progress here directly reduces workout discomfort']},
+  'yoga-core':{icon:'🧘',name:'30-min Yoga — Core & Posture',desc:'Yoga targeting core strength and spinal alignment. Search "yoga core strength 30 minutes" or "yoga for posture." Expect boat pose, plank variations, and spinal extensions.',tips:['Core yoga is more challenging than it looks','Focus on breathing through the poses — don\'t hold your breath','This complements your circuit training perfectly','Great for lower back health over time']},
+  'yoga-full-body':{icon:'🧘',name:'30-min Yoga — Full Body Flow',desc:'A well-rounded full-body yoga session. Search "30 min full body yoga flow" or "yoga for beginners full body." Great for active recovery.',tips:['Let go of performance — just move and breathe','Full body sessions reinforce everything you\'ve trained this week','A lovely way to end the week','Notice how much more mobile you feel compared to Week 1']},
+};
+
+// ── WORKOUT PROGRAM ───────────────────────────────────────────
+// Phase 1 Foundation (Wk 1–4): Building base patterns, 2 circuit rounds
+// Phase 2 Build (Wk 5–8): Progressive load, 3 rounds, new movements, more complexity
+// Each session: 10-min warmup + 15-min circuit + 5-min cooldown
+// Days: Tue, Thu, Sat + Sun yoga (rotating each week)
+
+const YOGA_BY_WEEK = {
+  1:'yoga-flexibility', 2:'yoga-hip', 3:'yoga-mobility', 4:'yoga-yin',
+  5:'yoga-strength', 6:'yoga-balance', 7:'yoga-core', 8:'yoga-full-body'
+};
+const YOGA_TIP_BY_WEEK = {
+  1:'Search "30 min flexibility yoga beginner Adriene" on YouTube. Perfect active recovery after your first week.',
+  2:'Search "yoga for tight hips and ankles Adriene" on YouTube. This one is specifically for your right ankle and knee.',
+  3:'Search "30 min yoga mobility" on YouTube. Great for office workers — targets hips, shoulders, and thoracic spine.',
+  4:'Search "30 min yin yoga" on YouTube. Long holds (2–5 min) give deep connective tissue release after a full month.',
+  5:'Search "30 min yoga strength flow beginner" on YouTube. You have enough base now to try something more challenging.',
+  6:'Search "yoga balance and core 30 minutes" on YouTube. Balance poses directly complement your lower body training.',
+  7:'Search "yoga core strength posture 30 minutes" on YouTube. This pairs perfectly with your circuit core work.',
+  8:'Search "30 min full body yoga flow" on YouTube. The final Sunday — enjoy how much has changed since Week 1.'
+};
+
+function makeWorkout(phase, week, day) {
+  // Phase 1: Foundation — 2 rounds, building patterns
+  const P1 = {
+    Tue: {
+      title:'Tuesday — Full Body Circuit A',type:'strength',icon:'💪',
+      tip:'Focus on form over weight. You\'re building the movement patterns that everything else will build on.',
+      sections:[
+        {title:'🔥 Warm-Up (10 min)',exercises:[
+          {key:'seated-march',detail:'2 min'},
+          {key:'ankle-circles',detail:'10 each direction, both feet'},
+          {key:'ankle-alphabet',detail:'A–Z each foot'},
+          {key:'arm-circles',detail:'30 sec each direction'},
+          {key:'shoulder-rolls',detail:'10 reps'},
+          {key:'cat-cow',detail:'10 slow reps'},
+          {key:'bw-squats',detail:'8 reps, slow and controlled'},
+        ]},
+        {title:`⚡ Circuit (15 min) — 2 Rounds${week>=3?' · Add weight if 2 rounds feels easy':''}`,exercises:[
+          {key:'db-chest-press',detail:'10 reps'},
+          {key:'band-rows',detail:'12 reps'},
+          {key:'glute-bridge',detail:'15 reps'},
+          {key:'dead-bug',detail:'8 each side'},
+          {key:'band-bicep-curls',detail:'12 reps'},
+          {key:'calf-raises',detail:'15 reps (seated if ankle is sore)'},
+        ]},
+        {title:'🧘 Cool-Down (5 min)',exercises:[
+          {key:'chest-opener',detail:'45 sec'},
+          {key:'figure-four',detail:'45 sec each side'},
+          {key:'breathwork',detail:'2 min'},
+        ]},
+      ]
+    },
+    Thu: {
+      title:'Thursday — Full Body Circuit B',type:'strength',icon:'🦵',
+      tip:'Circuit B hits the body from different angles. Remember — controlled movement, no jumping, protect that right ankle and knee.',
+      sections:[
+        {title:'🔥 Warm-Up (10 min)',exercises:[
+          {key:'seated-march',detail:'2 min'},
+          {key:'ankle-alphabet',detail:'A–Z each foot'},
+          {key:'hip-circles',detail:'10 each direction'},
+          {key:'leg-swings',detail:'10 front/back, 10 side/side'},
+          {key:'band-pull-aparts',detail:'15 reps'},
+          {key:'cat-cow',detail:'10 reps'},
+          {key:'childs-pose',detail:'30 sec'},
+        ]},
+        {title:`⚡ Circuit (15 min) — 2 Rounds${week>=3?' · Go heavier on goblet squat if comfortable':''}`,exercises:[
+          {key:'goblet-squat',detail:'10 reps'},
+          {key:'single-arm-row',detail:'10 each arm'},
+          {key:'clamshells',detail:'15 each side'},
+          {key:'plank',detail:'20–30 sec hold'},
+          {key:'tricep-kickback',detail:'10 each arm'},
+          {key:'wall-sit',detail:'20–30 sec'},
+        ]},
+        {title:'🧘 Cool-Down (5 min)',exercises:[
+          {key:'hamstring-stretch',detail:'45 sec'},
+          {key:'hip-flexor-stretch',detail:'45 sec each side'},
+          {key:'breathwork',detail:'2 min'},
+        ]},
+      ]
+    },
+    Sat: {
+      title:'Saturday — Full Body Circuit C',type:'strength',icon:'⚡',
+      tip:'Your third session of the week — you\'re building a real habit here. Notice how the warmup feels more natural each week.',
+      sections:[
+        {title:'🔥 Warm-Up (10 min)',exercises:[
+          {key:'seated-march',detail:'2 min'},
+          {key:'ankle-circles',detail:'10 each direction, both feet'},
+          {key:'shoulder-rolls',detail:'10 reps'},
+          {key:'arm-circles',detail:'30 sec each direction'},
+          {key:'thread-needle',detail:'8 each side'},
+          {key:'bw-squats',detail:'10 reps'},
+          {key:'band-pull-aparts',detail:'12 reps'},
+        ]},
+        {title:`⚡ Circuit (15 min) — 2 Rounds${week>=3?' · Try step-ups if ankle permits':''}`,exercises:[
+          {key:'rdl',detail:'10 reps'},
+          {key:'db-overhead-press',detail:'10 reps'},
+          {key:'band-bridge',detail:'15 reps, 2-sec hold at top'},
+          {key:'bird-dog',detail:'8 each side'},
+          {key:'hammer-curls',detail:'12 reps'},
+          {key:'step-ups',detail:'10 each leg (skip if ankle is sore)'},
+        ]},
+        {title:'🧘 Cool-Down (5 min)',exercises:[
+          {key:'lower-body-stretch',detail:'Full sequence'},
+          {key:'breathwork',detail:'2 min'},
+        ]},
+      ]
+    },
+    Sun: {
+      title:`Sunday — Yoga: ${EXERCISES[YOGA_BY_WEEK[week]]?.name.replace('30-min Yoga — ','')||'Recovery'}`,
+      type:'yoga',icon:'🧘',tip:YOGA_TIP_BY_WEEK[week]||'30 minutes of yoga. Search YouTube for a session that matches the focus.',
+      sections:[{title:'🧘 Yoga (30 min)',exercises:[{key:YOGA_BY_WEEK[week]||'yoga-flexibility',detail:'Full session — follow a YouTube video'}]}]
+    }
+  };
+
+  // Phase 2: Build — 3 rounds, more complex movements, increased load
+  const P2 = {
+    Tue: {
+      title:'Tuesday — Upper Body Focus',type:'strength',icon:'💪',
+      tip:'Phase 2 — we\'re adding a third round and introducing more complex upper body movements. Trust the base you built in Phase 1.',
+      sections:[
+        {title:'🔥 Warm-Up (10 min)',exercises:[
+          {key:'seated-march',detail:'2 min'},
+          {key:'ankle-alphabet',detail:'A–Z each foot'},
+          {key:'shoulder-rolls',detail:'10 reps'},
+          {key:'arm-circles',detail:'30 sec each direction'},
+          {key:'band-pull-aparts',detail:'15 reps'},
+          {key:'band-face-pulls',detail:'15 reps'},
+          {key:'pushups',detail:'8 reps, slow and controlled'},
+        ]},
+        {title:`⚡ Circuit (15 min) — 3 Rounds${week>=7?' · Push the weights — you\'re in the final stretch':''}`,exercises:[
+          {key:'db-chest-press',detail:'12 reps, heavier than Phase 1'},
+          {key:'single-arm-row',detail:'12 each arm'},
+          {key:'arnold-press',detail:'10 reps'},
+          {key:'band-face-pulls',detail:'15 reps'},
+          {key:'hammer-curls',detail:'12 reps'},
+          {key:'tricep-overhead',detail:'12 reps'},
+        ]},
+        {title:'🧘 Cool-Down (5 min)',exercises:[
+          {key:'upper-body-stretch',detail:'Full sequence'},
+          {key:'breathwork',detail:'2 min'},
+        ]},
+      ]
+    },
+    Thu: {
+      title:'Thursday — Lower Body Focus',type:'strength',icon:'🦵',
+      tip:'Lower body focus with 3 rounds. The glute and hip work you\'ve built protects your knee long-term — keep trusting the process.',
+      sections:[
+        {title:'🔥 Warm-Up (10 min)',exercises:[
+          {key:'seated-march',detail:'2 min'},
+          {key:'ankle-circles',detail:'10 each direction, both feet'},
+          {key:'ankle-alphabet',detail:'A–Z each foot'},
+          {key:'hip-circles',detail:'10 each direction'},
+          {key:'leg-swings',detail:'10 front/back, 10 side/side'},
+          {key:'cat-cow',detail:'10 reps'},
+          {key:'bw-squats',detail:'12 reps'},
+        ]},
+        {title:`⚡ Circuit (15 min) — 3 Rounds${week>=7?' · Add weight to goblet squat and RDL if you can':''}`,exercises:[
+          {key:'goblet-squat',detail:'12 reps, heavier than Phase 1'},
+          {key:'rdl',detail:'12 reps'},
+          {key:'clamshells',detail:'15 each side'},
+          {key:'band-bridge',detail:'15 reps, 2-sec hold'},
+          {key:'reverse-lunges',detail:'8 each leg (gentler than forward lunges)'},
+          {key:'seated-leg-press-band',detail:'12 each leg'},
+        ]},
+        {title:'🧘 Cool-Down (5 min)',exercises:[
+          {key:'pigeon-pose',detail:'60 sec each side'},
+          {key:'90-90-stretch',detail:'60 sec each side'},
+          {key:'breathwork',detail:'2 min'},
+        ]},
+      ]
+    },
+    Sat: {
+      title:'Saturday — Full Body Integration',type:'strength',icon:'⚡',
+      tip:'Full body integration — bringing upper and lower together with 3 rounds. This is your strongest session of the week.',
+      sections:[
+        {title:'🔥 Warm-Up (10 min)',exercises:[
+          {key:'seated-march',detail:'2 min'},
+          {key:'ankle-alphabet',detail:'A–Z each foot'},
+          {key:'arm-circles',detail:'30 sec each direction'},
+          {key:'hip-circles',detail:'10 each direction'},
+          {key:'band-pull-aparts',detail:'15 reps'},
+          {key:'thread-needle',detail:'8 each side'},
+          {key:'bw-squats',detail:'12 reps'},
+        ]},
+        {title:`⚡ Circuit (15 min) — 3 Rounds${week>=7?' · You\'ve earned this — go hard with good form':''}`,exercises:[
+          {key:'goblet-squat',detail:'10 reps'},
+          {key:'db-row-bent',detail:'12 reps'},
+          {key:'glute-march',detail:'10 each side'},
+          {key:'db-overhead-press',detail:'10 reps'},
+          {key:'dead-bug',detail:'8 each side'},
+          {key:'band-bridge',detail:'15 reps'},
+        ]},
+        {title:'🧘 Cool-Down (5 min)',exercises:[
+          {key:'full-stretch',detail:'Full sequence'},
+          {key:'breathwork',detail:'2 min'},
+        ]},
+      ]
+    },
+    Sun: {
+      title:`Sunday — Yoga: ${EXERCISES[YOGA_BY_WEEK[week]]?.name.replace('30-min Yoga — ','')||'Recovery'}`,
+      type:'yoga',icon:'🧘',tip:YOGA_TIP_BY_WEEK[week]||'30 minutes of yoga.',
+      sections:[{title:'🧘 Yoga (30 min)',exercises:[{key:YOGA_BY_WEEK[week]||'yoga-strength',detail:'Full session — follow a YouTube video'}]}]
+    }
+  };
+
+  return phase===1 ? P1[day] : P2[day];
+}
+
+// ── STATE HELPERS ─────────────────────────────────────────────
+const DAYS=['Tue','Thu','Sat','Sun'];
+const DAY_PHASES={1:[1,2,3,4],2:[5,6,7,8]};
+let currentPhase=1,currentWeek=1;
+
+function dayKey(w,d){return `w${w}_${d}`;}
+function exKey(w,d,s,e){return `ex_w${w}_${d}_s${s}_e${e}`;}
+function wtKey(ek){return `wt_${ek}`;}
+function rpKey(ek){return `rp_${ek}`;}
+function totalDaysDone(){return Object.keys(state).filter(k=>/^w\d+_[A-Z]/.test(k)&&state[k]).length;}
+function weekProgress(w){return{done:DAYS.filter(d=>state[dayKey(w,d)]).length,total:4};}
+function pillClass(t){return{strength:'pill-strength',yoga:'pill-yoga',mobility:'pill-mobility'}[t]||'pill-strength';}
+
+// ── RENDER ────────────────────────────────────────────────────
+function updateHeader(){
+  const done=totalDaysDone(),pct=Math.round((done/32)*100);
+  document.getElementById('stat-days').textContent=done;
+  document.getElementById('stat-pct').textContent=pct+'%';
+  document.getElementById('progress-fill').style.width=pct+'%';
+}
+
+function renderWeekList(){
+  const weeks=DAY_PHASES[currentPhase];
+  let html='<div class="sidebar-title">Week</div>';
+  weeks.forEach(w=>{
+    const prog=weekProgress(w);
+    let badge='';
+    if(prog.done===DAYS.length)badge=`<span class="week-done-badge">✓</span>`;
+    else if(prog.done>0)badge=`<span class="week-partial-badge">${prog.done}/${DAYS.length}</span>`;
+    html+=`<button class="week-btn ${w===currentWeek?'active':''}" onclick="selectWeek(${w})">Week ${w} ${badge}</button>`;
+  });
+  document.getElementById('week-list').innerHTML=html;
+}
+
+function renderContent(){
+  const phase=currentPhase,week=currentWeek;
+  const prog=weekProgress(week);
+  const dots=DAYS.map(d=>`<div class="dot ${state[dayKey(week,d)]?'done':''}"></div>`).join('');
+  let html=`<div class="week-header p${phase}">
+    <div class="phase-badge">Phase ${phase} — ${phase===1?'Foundation':'Build'}</div>
+    <h2>Week ${week}</h2>
+    <div class="week-progress"><div class="week-progress-dots">${dots}</div><span class="week-progress-text">${prog.done} of ${prog.total} days complete</span></div>
+  </div>`;
+
+  const NO_TRACK=['seated-march','ankle-circles','ankle-alphabet','arm-circles','shoulder-rolls','cat-cow','thread-needle','childs-pose','hip-circles','leg-swings','band-pull-aparts','bw-squats','chest-opener','figure-four','breathwork','bird-dog','glute-bridge','band-bridge','clamshells','plank','dead-bug','glute-march','hamstring-stretch','hip-flexor-stretch','lower-body-stretch','upper-body-stretch','full-stretch','pigeon-pose','90-90-stretch','wall-sit','yoga-flexibility','yoga-mobility','yoga-strength','yoga-balance','yoga-yin','yoga-hip','yoga-core','yoga-full-body','band-rows','band-bicep-curls','band-face-pulls','seated-leg-press-band'];
+
+  DAYS.forEach(day=>{
+    const wk=makeWorkout(phase,week,day);
+    const dk=dayKey(week,day);
+    const isDone=!!state[dk];
+    html+=`<div class="day-card ${isDone?'completed':''}" id="card_${day}">
+      <div class="day-header" onclick="toggleDay('${day}')">
+        <div class="day-icon">${wk.icon}</div>
+        <div class="day-info"><div class="day-name">${wk.title}</div><div class="day-subtitle"><span class="day-type-pill ${pillClass(wk.type)}">${wk.type}</span></div></div>
+        <div class="day-check ${isDone?'checked':''}" onclick="toggleDayDone(event,'${day}')">${isDone?'✓':''}</div>
+      </div>
+      <div class="day-body" id="body_${day}">
+        <div class="day-tip">💡 ${wk.tip}</div>`;
+
+    wk.sections.forEach((sec,sIdx)=>{
+      html+=`<div class="section-title">${sec.title}</div>`;
+      sec.exercises.forEach((ex,eIdx)=>{
+        const info=EXERCISES[ex.key]||{icon:'●',name:ex.key,desc:'',tips:[],ankleNote:false};
+        const ek=exKey(week,day,sIdx,eIdx);
+        const exDone=!!state[ek];
+        const showTrack=wk.type!=='yoga'&&!NO_TRACK.includes(ex.key);
+        const curWt=state[wtKey(ek)]||'';
+        const curRp=state[rpKey(ek)]||'';
+        const hist=getHistory(week,day,sIdx,eIdx);
+
+        html+=`<div class="exercise-card" id="excard_${ek}">
+          <div class="ex-header" onclick="toggleEx('${ek}')">
+            <div class="ex-check ${exDone?'checked':''}" onclick="toggleExDone(event,'${ek}')">${exDone?'✓':''}</div>
+            <span class="ex-name">${info.name}</span>
+            ${info.ankleNote?'<span class="ex-caution">⚠ ankle/knee</span>':''}
+            <span class="ex-detail">${ex.detail}</span>
+            ${showTrack?`<div class="tracking-inputs" onclick="event.stopPropagation()">
+              <input type="number" value="${curWt}" placeholder="lbs" title="Weight (lbs)" onchange="saveWt('${ek}',this.value)" class="${curWt?'filled':''}"/>
+              <span class="sep">×</span>
+              <input type="number" value="${curRp}" placeholder="reps" title="Reps done" onchange="saveRp('${ek}',this.value)" class="${curRp?'filled':''}"/>
+            </div>`:''}
+            <span class="ex-expand" id="exarrow_${ek}">▼</span>
+          </div>
+          <div class="ex-body" id="exbody_${ek}">
+            ${hist.length>0?`<div class="hist-line">Previous: ${hist.map(h=>`<span>${h}</span>`).join(' · ')}</div>`:''}
+            <div class="ex-body-inner">
+              <div>
+                <div class="ex-image-area"><div style="font-size:3rem">${info.icon}</div><div class="ex-image-label">${info.name}</div></div>
+                <div class="ex-desc" style="margin-top:0.75rem"><h4>How to do it</h4><p>${info.desc}</p>${ex.detail?`<p style="font-size:12px;color:var(--text-hint);margin-top:0.4rem">📋 ${ex.detail}</p>`:''}</div>
+                ${info.ankleNote?`<div class="ankle-note">⚠️ Right ankle/knee: use the modification mentioned above if uncomfortable. Never push through sharp pain.</div>`:''}
+              </div>
+              <div class="form-tips"><h4>Form cues</h4><ul>${info.tips.map(t=>`<li>${t}</li>`).join('')}</ul></div>
+            </div>
+          </div>
+        </div>`;
+      });
+    });
+
+    html+=`<button class="complete-day-btn ${isDone?'done':''}" onclick="markDayComplete('${day}')">
+      ${isDone?'✓ Day Complete!':'+ Mark Entire Day Complete'}
+    </button></div></div>`;
+  });
+
+  html+=buildActivityTracker(week);
+  html+=buildLifestyleTracker(week);
+  document.getElementById('content').innerHTML=html;
+}
+
+function renderAll(){renderWeekList();renderContent();updateHeader();}
+
+// ── HISTORY ───────────────────────────────────────────────────
+function getHistory(week,day,sIdx,eIdx){
+  const res=[];
+  for(let w=1;w<week;w++){
+    const ek=exKey(w,day,sIdx,eIdx);
+    const wt=state[wtKey(ek)],rp=state[rpKey(ek)];
+    if(wt||rp){let e=`wk${w}`;if(wt)e+=` ${wt}lbs`;if(rp)e+=` ×${rp}`;res.push(e);}
+  }
+  return res.slice(-3);
+}
+
+// ── ACTIVITY TRACKER ──────────────────────────────────────────
+const ACTIVITIES=[
+  {key:'walk',label:'🚶 Outdoor walk 30+ min',type:'dot'},
+  {key:'steps',label:'👣 Daily steps',type:'steps'},
+  {key:'bike',label:'🚴 Road bike ride',type:'bike'},
+  {key:'soccer',label:'⚽ Soccer',type:'dot'},
+  {key:'swim',label:'🏊 Swimming',type:'dot'},
+  {key:'yoga',label:'🧘 Yoga',type:'dot'},
+];
+const WDAYS=['M','T','W','T','F','S','S'];
+
+function actKey(w,act,d){return `act_w${w}_${act}_d${d}`;}
+function bikeKey(w,d){return `bike_w${w}_d${d}`;}
+function stepsKey(w,d){return `steps_w${w}_d${d}`;}
+
+function buildActivityTracker(week){
+  let total=0;
+  let bikeTotal=0;
+  let html=`<div class="tracker-section"><div class="tracker-header"><div class="tracker-header-title">Extra Activity — Week ${week}</div><div class="tracker-header-sub">Tap any day to log it</div></div>
+  <table class="tracker-grid"><thead><tr><th class="label-col">Activity</th>${WDAYS.map(d=>`<th>${d}</th>`).join('')}<th>Total</th></tr></thead><tbody>`;
+
+  ACTIVITIES.forEach(act=>{
+    let rowCount=0;
+    html+=`<tr><td class="label-col">${act.label}</td>`;
+    for(let d=0;d<7;d++){
+      if(act.type==='bike'){
+        const bk=bikeKey(week,d);
+        const mins=state[bk]||'';
+        if(mins&&parseInt(mins)>0){rowCount+=parseInt(mins);total++;}
+        html+=`<td><input type="number" class="bike-input${mins?' has-value':''}" value="${mins}" placeholder="—" title="Minutes biked" onchange="saveBike(${week},${d},this.value)" onclick="event.stopPropagation()" /></td>`;
+      } else if(act.type==='steps'){
+        const sk=stepsKey(week,d);
+        const steps=state[sk]||'';
+        if(steps&&parseInt(steps)>0)total++;
+        html+=`<td><input type="number" class="steps-input${steps?' has-value':''}" value="${steps}" placeholder="—" title="Steps today" onchange="saveSteps(${week},${d},this.value)" onclick="event.stopPropagation()" /></td>`;
+      } else {
+        const k=actKey(week,act.key,d);
+        const done=!!state[k];
+        if(done){rowCount++;total++;}
+        html+=`<td><div class="tracker-dot${done?' done':''}" onclick="toggleActivity(${week},'${act.key}',${d})">${done?'✓':''}</div></td>`;
+      }
+    }
+    // Show appropriate total
+    let countDisplay=rowCount;
+    if(act.type==='bike'){countDisplay=rowCount?rowCount+'m':'0';bikeTotal=rowCount;}
+    else if(act.type==='steps'){countDisplay='—';}
+    html+=`<td class="tracker-count">${countDisplay}</td></tr>`;
+  });
+
+  html+=`</tbody></table><div class="tracker-footer"><span>Total logged: <strong>${total}</strong>${bikeTotal?` · <strong>${bikeTotal} min</strong> biking`:''}</span><span>Week ${week} of 8</span></div></div>`;
+  return html;
+}
+
+function toggleActivity(w,act,d){const k=actKey(w,act,d);state[k]=!state[k];scheduleSave();renderContent();updateHeader();}
+function saveBike(w,d,val){state[bikeKey(w,d)]=val;state[actKey(w,'bike',d)]=val&&parseInt(val)>0;scheduleSave();}
+function saveSteps(w,d,val){state[stepsKey(w,d)]=val;scheduleSave();}
+
+// ── LIFESTYLE TRACKER ─────────────────────────────────────────
+const LIFESTYLE=[
+  {key:'sleep',label:'😴 Sleep 6+ hours'},
+  {key:'water',label:'💧 4+ glasses of water'},
+  {key:'anxiety-meds',label:'💊 Anxiety medication taken'},
+  {key:'allergy-meds',label:'🤧 Allergy medication taken'},
+];
+
+function lsKey(w,item,d){return `ls_w${w}_${item}_d${d}`;}
+
+function buildLifestyleTracker(week){
+  let total=0;
+  let html=`<div class="tracker-section" style="margin-bottom:1.5rem"><div class="tracker-header"><div class="tracker-header-title">Daily Lifestyle — Week ${week}</div><div class="tracker-header-sub">Track your daily habits</div></div>
+  <table class="tracker-grid"><thead><tr><th class="label-col">Habit</th>${WDAYS.map(d=>`<th>${d}</th>`).join('')}<th>#</th></tr></thead><tbody>`;
+
+  LIFESTYLE.forEach(item=>{
+    let rowCount=0;
+    html+=`<tr><td class="label-col">${item.label}</td>`;
+    for(let d=0;d<7;d++){
+      const k=lsKey(week,item.key,d);
+      const done=!!state[k];
+      if(done){rowCount++;total++;}
+      html+=`<td><div class="tracker-dot ls${done?' done':''}" onclick="toggleLifestyle(${week},'${item.key}',${d})">${done?'✓':''}</div></td>`;
+    }
+    html+=`<td class="tracker-count">${rowCount}</td></tr>`;
+  });
+
+  html+=`</tbody></table><div class="tracker-footer"><span>Total: <span class="ls-strong"><strong>${total}</strong></span></span><span>Keep the streak going 💜</span></div></div>`;
+  return html;
+}
+
+function toggleLifestyle(w,item,d){const k=lsKey(w,item,d);state[k]=!state[k];scheduleSave();renderContent();}
+
+// ── INTERACTIONS ──────────────────────────────────────────────
+function toggleDay(d){const b=document.getElementById('body_'+d);if(b)b.classList.toggle('open');}
+function toggleDayDone(e,day){e.stopPropagation();const dk=dayKey(currentWeek,day);state[dk]=!state[dk];scheduleSave();renderAll();}
+function markDayComplete(day){state[dayKey(currentWeek,day)]=true;scheduleSave();renderAll();}
+function toggleEx(ek){const body=document.getElementById('exbody_'+ek);const arrow=document.getElementById('exarrow_'+ek);if(body){body.classList.toggle('open');if(arrow)arrow.textContent=body.classList.contains('open')?'▲':'▼';}}
+function toggleExDone(e,ek){
+  e.stopPropagation();state[ek]=!state[ek];scheduleSave();
+  const check=document.getElementById('excard_'+ek)?.querySelector('.ex-check');
+  if(check){check.classList.toggle('checked',!!state[ek]);check.textContent=state[ek]?'✓':'';check.classList.add('pop');setTimeout(()=>check.classList.remove('pop'),300);}
+  updateHeader();
+}
+function saveWt(ek,val){state[wtKey(ek)]=val;scheduleSave();}
+function saveRp(ek,val){state[rpKey(ek)]=val;scheduleSave();}
+function selectPhase(p){currentPhase=p;currentWeek=DAY_PHASES[p][0];document.querySelectorAll('.phase-btn').forEach((b,i)=>b.classList.toggle('active',i+1===p));renderAll();}
+function selectWeek(w){currentWeek=w;renderAll();window.scrollTo({top:0,behavior:'smooth'});}
+
+// ── LOAD GOOGLE APIS ──────────────────────────────────────────
+const s1=document.createElement('script');s1.src='https://apis.google.com/js/api.js';
+s1.onload=()=>gapi.load('client',async()=>{await gapi.client.init({apiKey:API_KEY,discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']});gapiInited=true;maybeEnableApp();});
+document.head.appendChild(s1);
+const s2=document.createElement('script');s2.src='https://accounts.google.com/gsi/client';
+s2.onload=()=>{tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPES,callback:async(resp)=>{if(resp.error){showSync('Sign-in failed: '+resp.error,'error');return;}await afterSignIn();}});gisInited=true;maybeEnableApp();};
+document.head.appendChild(s2);
+</script>
+</body>
+</html>
